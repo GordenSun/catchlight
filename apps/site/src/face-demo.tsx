@@ -13,8 +13,6 @@ import type { FaceLandmarker, PoseLandmarker, PoseLandmarkerResult } from "@medi
 import { useEffect, useRef, useState } from "react";
 import { StatsForNerds, TierBadge, trackingStats, useGpuTier } from "./face-stats.js";
 
-/** Lan's head with room for a turn and a tilt. */
-const FACE_CAMERA: Camera = { center: [-3, 770], height: 520 };
 
 const MODELS = "https://storage.googleapis.com/mediapipe-models";
 /** MediaPipe pose landmark indices; "left" is the subject's own left. */
@@ -66,7 +64,8 @@ export function torsoTargets(result: PoseLandmarkerResult): Map<string, number> 
   return targets;
 }
 
-export function FaceDemo({ session }: { session: Session }) {
+/** `camera` frames the character's head with room for a turn and a tilt. */
+export function FaceDemo({ session, camera, name }: { session: Session; camera: Camera; name: string }) {
   const editor = useEditor();
   const tier = useGpuTier(editor);
   const video = useRef<HTMLVideoElement>(null);
@@ -235,14 +234,14 @@ export function FaceDemo({ session }: { session: Session }) {
 
   return <main className="face-demo">
     <div className="face-stage" ref={stage}>
-      <Viewport.Root session={session} defaultCamera={FACE_CAMERA} aria-label="Lan following your face" onError={cause => setError(String(cause))} />
+      <Viewport.Root session={session} defaultCamera={camera} aria-label={`${name} following your face`} onError={cause => setError(String(cause))} />
       <TierBadge tier={tier} />
       {nerdy && <StatsForNerds editor={editor} session={session} stats={stats} video={video.current} canvasHost={stage.current}
         tier={tier} mirrored={mirrored} active={active} onClose={() => setNerdy(false)} />}
     </div>
     <aside className="face-controls">
-      <p className="eyebrow">LIVE PERFORMANCE</p><h1>Your expressions.<br />Lan’s animation.</h1>
-      <p>Turn your head, blink, raise your brows, open your mouth, and lean or turn your shoulders to bring Lan to life.</p>
+      <p className="eyebrow">LIVE PERFORMANCE</p><h1>Your expressions.<br />{name}’s animation.</h1>
+      <p>Turn your head, blink, raise your brows, open your mouth, and lean or turn your shoulders to bring {name} to life.</p>
       <video ref={video} muted playsInline className={mirrored ? "mirrored" : undefined}
         aria-label={mirrored ? "Mirrored camera preview" : "Camera preview"} />
       <p role="status">{status}</p>

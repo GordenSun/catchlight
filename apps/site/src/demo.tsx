@@ -19,35 +19,55 @@ import * as catchlight from "@catchlight/wasm";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { CHARACTERS, characterFromQuery } from "./characters.js";
+import type { Character } from "./characters.js";
 import { downloadModel, showLoading, showProcessing } from "./loading.js";
 import { FaceDemo } from "./face-demo.js";
-import lanUrl from "../../../tests/models/lan.clm?url";
+import { LiveDemo } from "./live-demo.js";
 
 /** A bundled asset URL or development route, never a filesystem path. */
 type Example = { file: string; name: string; size?: number };
-declare const __CATCHLIGHT_LAN_SIZE__: number;
-const lan: Example = { file: lanUrl, name: "Lan.clm", size: __CATCHLIGHT_LAN_SIZE__ };
 declare const __CATCHLIGHT_EXAMPLE__: Example | null;
-const example: Example = __CATCHLIGHT_EXAMPLE__ ?? lan;
 
-export async function start(mode: "editor" | "face"): Promise<void> {
+export type DemoMode = "editor" | "face" | "live";
+
+/** The character a mode opens when the URL does not name one with `?model=`. */
+const DEFAULT_CHARACTER = { editor: "lan", face: "lan", live: "dafeiyu-q" } as const;
+
+export async function start(mode: DemoMode): Promise<void> {
   try {
-    const server = mode === "face" ? null : new URLSearchParams(globalThis.location.search).get("server");
-    showLoading("Starting editor…", "Preparing your workspace");
-    const editor = await Editor.create(catchlight, mode === "face" ? new InTabBackend(new catchlight.CatchlightEditor(), new MemoryStorage()) : await pick(server));
+    const query = new URLSearchParams(globalThis.location.search);
+    const server = mode === "editor" ? query.get("server") : null;
+    const character = characterFromQuery(query, DEFAULT_CHARACTER[mode]);
+    // The development override replaces Lan in the editor and nothing else.
+    const example: Example = mode === "editor" && character.id === "lan" && __CATCHLIGHT_EXAMPLE__
+      ? __CATCHLIGHT_EXAMPLE__ : starterOf(character);
+    if (mode === "live") showLoading("正在准备舞台…", "加载渲染引擎");
+    else showLoading("Starting editor…", "Preparing your workspace");
+    // Posing demos keep nothing: an in-tab editor over memory, gone with the tab.
+    const editor = await Editor.create(catchlight, mode === "editor" ? await pick(server) : new InTabBackend(new catchlight.CatchlightEditor(), new MemoryStorage()));
 
     // A configured starter is opened before the panel chooses its current session.
     const session = server === null
-      ? await openStarter(editor, mode === "face" ? lan : example).catch(report)
+      ? await openStarter(editor, example, mode === "live").catch(report)
       : undefined;
 
-    mount(editor, mode, session);
+    mount(editor, mode, session, character, example);
     probe(editor);
   } catch (cause) {
     showLoading("Could not open Catchlight", "Reload the page to try again.");
     document.getElementById("loading-progress")?.setAttribute("hidden", "");
     report(cause);
   }
+}
+
+function starterOf(character: Character): Example {
+  return { file: character.url, name: character.file, size: character.size };
+}
+
+/** `BASE_URL` ends in a slash and is `/<repo>/` on Pages. */
+function assetUrl(file: string): string {
+  return new URL(file, new URL(import.meta.env.BASE_URL, location.href)).href;
 }
 
 /** A local editor process when the URL names one, this tab otherwise. */
@@ -73,27 +93,56 @@ async function store(): Promise<Storage> {
 }
 
 /**
- * Opens Lan, or the configured development override.
+ * Opens the starter character, or the configured development override.
  *
  * Reported rather than thrown: a starter that will not load is worth saying out
  * loud, and is no reason to withhold an editor that works.
  */
-async function openStarter(editor: Editor, example: Example): Promise<Session> {
-  // `BASE_URL` ends in a slash and is `/<repo>/` on Pages.
-  const url = new URL(example.file, new URL(import.meta.env.BASE_URL, location.href)).href;
-  const bytes = await downloadModel(url, example.name, example.size);
-  await showProcessing(example.name);
+async function openStarter(editor: Editor, example: Example, chinese = false): Promise<Session> {
+  const bytes = await downloadModel(assetUrl(example.file), example.name, example.size, chinese ? "正在请大肥鱼出场…" : undefined);
+  await showProcessing(example.name, chinese ? "正在整理模型和贴图…" : undefined);
   return editor.openFile(bytes, example.name);
 }
 
-function mount(editor: Editor, mode: "editor" | "face", session: Session | void): void {
+/** Fetches one more character into an editor that is already on screen. */
+async function openCharacter(editor: Editor, character: Character, progress: (fraction: number) => void): Promise<Session> {
+  const response = await fetch(assetUrl(character.url));
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+  const bytes = new Uint8Array(character.size);
+  let received = 0;
+  const reader = response.body?.getReader();
+  if (!reader) return editor.openFile(new Uint8Array(await response.arrayBuffer()), character.file);
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (received + value.length > bytes.length) throw new Error(`${character.file} is larger than the build measured`);
+    bytes.set(value, received);
+    received += value.length;
+    progress(received / character.size);
+  }
+  return editor.openFile(received === bytes.length ? bytes : bytes.subarray(0, received), character.file);
+}
+
+function mount(editor: Editor, mode: DemoMode, session: Session | void, character: Character, example: Example): void {
   const host = document.getElementById("editor");
   if (!host) throw new Error("index.html has no #editor to mount into");
+  const menu = `${import.meta.env.BASE_URL}?demo=menu`;
+  if (mode === "live") {
+    document.documentElement.lang = "zh-CN";
+    document.title = "大肥鱼 Live2D — 摸摸头、戳戳脸，Q版 / 成年版随时切换";
+    createRoot(host).render(
+      <StrictMode>
+        {session ? <LiveDemo editor={editor} initial={character} session={session} load={(next, progress) => openCharacter(editor, next, progress)} /> : null}
+      </StrictMode>,
+    );
+    return;
+  }
   createRoot(host).render(
     <StrictMode>
       <div className="demo-shell">
-        <nav className="demo-nav"><a href={import.meta.env.BASE_URL}>← All demos</a><span>{mode === "face" ? "Face tracking" : "Editor demo"}</span></nav>
-        {mode === "face" ? (session ? <EditorProvider editor={editor}><FaceDemo session={session} /></EditorProvider> : null) :
+        <nav className="demo-nav"><a href={menu}>← All demos</a><span>{mode === "face" ? "Face tracking" : "Editor demo"}</span>
+          {character.id !== "lan" && <a href={`${import.meta.env.BASE_URL}?model=${character.id}`}>大肥鱼互动页</a>}</nav>
+        {mode === "face" ? (session ? <EditorProvider editor={editor}><FaceDemo session={session} camera={character.face} name={character.id === "lan" ? "Lan" : "大肥鱼"} /></EditorProvider> : null) :
           <CatchlightEditor editor={editor} onOpenStarter={() => openStarter(editor, example)} />}
       </div>
     </StrictMode>,

@@ -14,7 +14,7 @@ Catchlight is a software stack for 2.5D character animation. It simulates
 
 | Offering | Audience and purpose | Distribution |
 | --- | --- | --- |
-| **Catchlight Demo** | Choose the in-browser editor or camera-driven face tracking. | The hosted app in `apps/site/`, named `catchlight-demo` in the web workspace. |
+| **Catchlight Demo** | Play with an interactive character, or choose the in-browser editor or camera-driven face tracking. | The hosted app in `apps/site/`, named `catchlight-demo` in the web workspace. |
 | **Catchlight Studio** | Author locally with a person and an agent sharing editor sessions. | `catchlight-editor`: one binary that serves the editor UI on `127.0.0.1`, opens the browser, and runs agent commands against the same session. Install it below. |
 | **Catchlight libraries** | Embed animation or authoring in another application, or automate an editor. | Rust libraries, the `@catchlight/*` browser packages, and the [Python client](python/README.md). |
 
@@ -42,8 +42,14 @@ the native editor server; `@catchlight/editor` is the packaged application.
 `@catchlight/react` exposes the unstyled parts, and `@catchlight/core` supplies
 the web-platform glue.
 
-The landing page offers an editor demo (`?demo=editor`) and a face-tracking
-demo (`?demo=face`). Both preload Lan from `tests/models/lan.clm`. Face tracking
+The hosted app opens on an interactive character: 大肥鱼, in a chibi and a
+grown-up rig that switch on one page. She follows the pointer, blinks,
+breathes, and reacts to being patted, poked or tugged; nothing but a pointer is
+needed. `?demo=menu` lists the other two demos, the editor (`?demo=editor`) and
+face tracking (`?demo=face`), which preload Lan from `tests/models/lan.clm`.
+Add `&model=dafeiyu-q` or `&model=dafeiyu-adult` to open 大肥鱼 in either. Her
+models are built by [python/examples/dafeiyu](python/examples/dafeiyu/README.md).
+Face tracking
 also follows shoulder posture. It starts only after clicking **Start camera**,
 processes frames locally, and downloads MediaPipe assets from Google and
 jsDelivr. It requires HTTPS (or

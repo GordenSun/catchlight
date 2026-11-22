@@ -19,7 +19,11 @@ export default defineConfig(async ({ command, isPreview }) => {
     base: process.env.VITE_BASE ?? "/",
     define: {
       // Fetch exposes decoded bytes; HTTP Content-Length may describe compression.
-      __CATCHLIGHT_LAN_SIZE__: (await stat(new URL("../../tests/models/lan.clm", import.meta.url))).size,
+      __CATCHLIGHT_MODEL_SIZES__: JSON.stringify({
+        lan: (await stat(new URL("../../tests/models/lan.clm", import.meta.url))).size,
+        "dafeiyu-q": (await stat(new URL("./models/dafeiyu-q.clm", import.meta.url))).size,
+        "dafeiyu-adult": (await stat(new URL("./models/dafeiyu-adult.clm", import.meta.url))).size,
+      }),
       __CATCHLIGHT_EXAMPLE__: JSON.stringify(local?.example ?? null),
     },
     plugins: [react(), ...(local ? [local.plugin] : [])],

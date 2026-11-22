@@ -35,7 +35,7 @@ test.skipIf(!executablePath)("the demo preloads Lan and reopens it from the empt
     const models: string[] = [], errors: string[] = [];
     page.on("request", request => { if (request.resourceType() === "fetch" && new URL(request.url()).pathname.endsWith(".clm")) models.push(request.url()); });
     page.on("pageerror", error => errors.push(error.message));
-    await page.goto(server.resolvedUrls!.local[0]!, { waitUntil: "networkidle" });
+    await page.goto(`${server.resolvedUrls!.local[0]}?demo=menu`, { waitUntil: "networkidle" });
     await page.getByRole("heading", { name: "Bring a character to life." }).waitFor();
     expect(models).toHaveLength(0);
     await page.getByRole("link", { name: /Open the editor/ }).click();

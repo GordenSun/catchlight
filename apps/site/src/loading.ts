@@ -13,11 +13,11 @@ export function showLoading(label: string, detail: string, fraction?: number): v
 }
 
 /** The bundled asset's decoded size stays accurate across HTTP compression. */
-export async function downloadModel(url: string, name: string, modelSize?: number): Promise<Uint8Array> {
+export async function downloadModel(url: string, name: string, modelSize?: number, label = "Downloading model…"): Promise<Uint8Array> {
   let total = modelSize !== undefined && Number.isFinite(modelSize) && modelSize > 0 ? modelSize : undefined;
   const describe = (received: number) => {
     const size = `${(received / 1048576).toFixed(1)} MB`;
-    showLoading("Downloading model…", total !== undefined && received <= total
+    showLoading(label, total !== undefined && received <= total
       ? `${name} · ${size} / ${(total / 1048576).toFixed(1)} MB · ${Math.floor(received / total * 100)}%`
       : `${name} · ${size} received`, total !== undefined && received <= total ? received / total : undefined);
   };
@@ -60,7 +60,7 @@ export async function downloadModel(url: string, name: string, modelSize?: numbe
 }
 
 /** Let the browser paint the processing state before synchronous wasm work. */
-export async function showProcessing(name: string): Promise<void> {
-  showLoading("Processing model…", `${name} · Preparing the model and textures`);
+export async function showProcessing(name: string, label?: string): Promise<void> {
+  showLoading(label ?? "Processing model…", label ? name : `${name} · Preparing the model and textures`);
   await new Promise<void>(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
 }

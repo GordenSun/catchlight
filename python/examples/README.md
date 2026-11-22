@@ -44,3 +44,9 @@ rollback, exact candidate replay, stale guards and one-step Undo restoration.
 ```sh
 nix develop -c uv run --project python pytest python/tests/test_rig_workflow.py -q
 ```
+
+## A whole character
+
+[dafeiyu](dafeiyu/README.md) rigs two complete characters from separately
+generated image layers: registration, part cutting, lattices, a blink, a
+mouth and spring-driven hair, all from script.

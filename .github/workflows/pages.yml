@@ -3,6 +3,9 @@ name: Pages
 on:
   push:
     branches: [main]
+  # A fork's first deploy: Actions there start disabled, so the push that
+  # would have deployed has already happened by the time they are enabled.
+  workflow_dispatch:
 
 permissions:
   contents: read

@@ -609,3 +609,60 @@ function stubFrames(): { flush(): Promise<void>; restore(): void } {
     },
   };
 }
+
+describe("a host that is not the editor", () => {
+  test("its backdrop reaches the renderer at attach and again when it changes", async () => {
+    const { editor, viewports } = await harness();
+    const session = await editor.newSession();
+    const stage = (background?: readonly [number, number, number]): ReactNode => (
+      <EditorProvider editor={editor}>
+        <Viewport.Root session={session} defaultCamera={{ center: [0, 0], height: 600 }} {...(background ? { background } : {})} />
+      </EditorProvider>
+    );
+
+    const view = await mount(stage([0.5, 0.75, 1]));
+    await settle();
+    const live = viewports.filter((viewport) => viewport.freed === 0)[0];
+    expect(live?.background).toEqual([0.5, 0.75, 1]);
+
+    await view.render(stage([1, 1, 1]));
+    expect(live?.background).toEqual([1, 1, 1]);
+    await view.unmount();
+  });
+
+  test("with no backdrop the renderer keeps its own", async () => {
+    const { editor, viewports } = await harness();
+    const session = await editor.newSession();
+    const view = await mount(
+      <EditorProvider editor={editor}>
+        <Viewport.Root session={session} defaultCamera={{ center: [0, 0], height: 600 }} />
+      </EditorProvider>,
+    );
+    await settle();
+    expect(viewports.filter((viewport) => viewport.freed === 0)[0]?.background).toBeUndefined();
+    await view.unmount();
+  });
+
+  test("a wheel it declined neither zooms nor is taken from the page", async () => {
+    const { editor } = await harness();
+    const session = await editor.newSession();
+    const cameras: Camera[] = [];
+    const view = await mount(
+      <EditorProvider editor={editor}>
+        <Viewport.Root
+          session={session}
+          defaultCamera={{ center: [0, 0], height: 600 }}
+          wheelZoom={false}
+          onCameraChange={(camera) => cameras.push(camera)}
+        />
+      </EditorProvider>,
+    );
+    await settle();
+    const canvas = view.container.querySelector("canvas") as HTMLCanvasElement;
+    const notch = wheel(100, 400, 300);
+    await fire(canvas, notch);
+    expect(cameras).toHaveLength(0);
+    expect(notch.defaultPrevented).toBe(false);
+    await view.unmount();
+  });
+});

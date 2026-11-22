@@ -557,6 +557,9 @@ struct Inner {
     composites: CompositePool,
     list: RenderList,
     camera: Camera,
+    /// What the frame is cleared to before anything is drawn, in linear RGB.
+    /// [`CLEAR`] until a host that is not the editor says otherwise.
+    clear: wgpu::Color,
     size: (u32, u32),
     dirty: bool,
     /// The animation-frame timestamp the last frame drew at, so a readback can
@@ -801,7 +804,7 @@ impl Inner {
             &mut self.composites,
             rendered.0,
             rendered.1,
-            Some(CLEAR),
+            Some(self.clear),
         );
         let mut done = match recorded {
             Ok(done) => done,
@@ -1238,6 +1241,7 @@ impl Viewport {
                     center: glam::Vec2::ZERO,
                     height: 2.0,
                 },
+                clear: CLEAR,
                 size,
                 dirty: true,
                 last_ms: 0.0,
@@ -1331,6 +1335,29 @@ impl Viewport {
         inner.camera = Camera {
             center: glam::Vec2::new(center_x, center_y),
             height: height.max(f32::EPSILON),
+        };
+        inner.dirty = true;
+    }
+
+    /// Clears to this opaque colour instead of the editor's graphite. The
+    /// components are sRGB in `0..=1`, as a page spells a colour; the frame is
+    /// cleared in linear RGB, so they are decoded here and nowhere else.
+    #[wasm_bindgen(js_name = setBackground)]
+    pub fn set_background(&self, red: f32, green: f32, blue: f32) {
+        let linear = |c: f32| {
+            let c = f64::from(c.clamp(0.0, 1.0));
+            if c <= 0.04045 {
+                c / 12.92
+            } else {
+                ((c + 0.055) / 1.055).powf(2.4)
+            }
+        };
+        let mut inner = self.inner.borrow_mut();
+        inner.clear = wgpu::Color {
+            r: linear(red),
+            g: linear(green),
+            b: linear(blue),
+            a: 1.0,
         };
         inner.dirty = true;
     }

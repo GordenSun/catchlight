@@ -926,6 +926,7 @@ export class FakeViewport implements WasmViewport {
   freed = 0;
   size: [number, number] | undefined;
   camera: [number, number, number] | undefined;
+  background: [number, number, number] | undefined;
   /** What `readback` resolves with. One grey pixel unless a test says more. */
   frame = {
     width: 1,
@@ -951,6 +952,9 @@ export class FakeViewport implements WasmViewport {
   }
   setCamera(x: number, y: number, height: number): void {
     this.camera = [x, y, height];
+  }
+  setBackground(red: number, green: number, blue: number): void {
+    this.background = [red, green, blue];
   }
   free(): void {
     this.freed += 1;

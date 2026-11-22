@@ -189,6 +189,15 @@ export class Viewport {
     this.#wasm.setCamera(x, y, height);
   }
 
+  /**
+   * Clears to this opaque colour instead of the editor's graphite: sRGB
+   * components in `0..=1`. A page that puts a character on its own backdrop
+   * says so here; the canvas stays opaque either way.
+   */
+  setBackground(red: number, green: number, blue: number): void {
+    this.#wasm.setBackground(red, green, blue);
+  }
+
   /** Stops everything and releases the GPU resources. */
   dispose(): void {
     this.stop();

@@ -113,6 +113,14 @@ export interface ViewportRootProps extends Omit<
   onError?: (cause: unknown) => void;
   /** The hand tool pans with the primary pointer, without a Space modifier. */
   panMode?: boolean;
+  /**
+   * The opaque colour behind the model, as sRGB components in `0..=1`. Absent
+   * leaves the editor's graphite, which is what an editor wants and a page
+   * showing a character on its own backdrop does not.
+   */
+  background?: readonly [number, number, number];
+  /** Leaves the wheel to the page: no zoom, and the page scrolls as usual. */
+  wheelZoom?: boolean;
 }
 
 /** A pan in flight: the pointer, and where it started from. */
@@ -136,6 +144,8 @@ export function ViewportRoot(props: ViewportRootProps) {
     onPointerCancel,
     onError,
     panMode,
+    background,
+    wheelZoom,
     style,
     ref,
     ...rest
@@ -161,6 +171,8 @@ export function ViewportRoot(props: ViewportRootProps) {
   const forwarded = useLatest(ref);
   const autoFits = useLatest(defaultCamera === undefined);
   const failed = useLatest(onError);
+  const backdrop = useLatest(background);
+  const zooms = useLatest(wheelZoom !== false);
 
   /** One place a new camera goes, wherever the gesture that made it started. */
   const commit = useCallback(
@@ -208,6 +220,7 @@ export function ViewportRoot(props: ViewportRootProps) {
       }
 
       const onWheel = (event: WheelEvent): void => {
+        if (!zooms.current) return;
         event.preventDefault();
         const at = screenOf(event.clientX, event.clientY, origin.current);
         const factor = ZOOM_PER_NOTCH ** wheelNotches(event.deltaY, event.deltaMode);
@@ -260,6 +273,8 @@ export function ViewportRoot(props: ViewportRootProps) {
             view.current = viewport;
             const now = cameraNow.current;
             viewport.setCamera(now.center[0], now.center[1], now.height);
+            const colour = backdrop.current;
+            if (colour) viewport.setBackground(colour[0], colour[1], colour[2]);
             viewport.start();
             frame = requestFrame(tryFit);
           })
@@ -285,7 +300,7 @@ export function ViewportRoot(props: ViewportRootProps) {
         attached?.dispose();
       };
     },
-    [editor, session, commit, cameraNow, framed, resized, autoFits, forwarded, failed],
+    [editor, session, commit, cameraNow, framed, resized, autoFits, forwarded, failed, backdrop, zooms],
   );
 
   // A camera the host changed. The one a gesture made has already been pushed
@@ -294,6 +309,15 @@ export function ViewportRoot(props: ViewportRootProps) {
   useEffect(() => {
     view.current?.setCamera(x, y, current.height);
   }, [x, y, current.height]);
+
+  // A backdrop the host changed while the viewport was live. Keyed on the
+  // components so a fresh array holding the same colour repaints nothing.
+  const [red, green, blue] = background ?? [];
+  useEffect(() => {
+    if (red !== undefined && green !== undefined && blue !== undefined) {
+      view.current?.setBackground(red, green, blue);
+    }
+  }, [red, green, blue]);
 
   // Space is a modifier, so it is the keyboard's state and not the canvas's:
   // it can go down before the pointer ever enters the element.

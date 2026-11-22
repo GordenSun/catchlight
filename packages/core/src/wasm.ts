@@ -273,6 +273,8 @@ export interface WasmViewport extends WasmOwned {
   /** Backing store in device pixels; the caller has set the canvas to match. */
   resize(width: number, height: number): void;
   setCamera(centerX: number, centerY: number, height: number): void;
+  /** Opaque clear colour, sRGB components in `0..=1`. */
+  setBackground(red: number, green: number, blue: number): void;
   /** Starts the rAF loop; idempotent. */
   start(): void;
   /** Cancels it; idempotent, and `start` works again afterwards. */

@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.join(REPO, "python"))
 import catchlight
 
 ch = sys.argv[1]
-PD = f"{HERE}/parts/{ch}"
+PD = f"{HERE}/art/{ch}"
 spec = json.load(open(f"{PD}/parts.json"))
 P, M = spec["parts"], spec["marks"]
 # The model goes where the site bundles it from; drawn textures and the render-check sidecar stay out of git.

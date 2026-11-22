@@ -1,6 +1,6 @@
 """parts.py <q|adult>: cut the registered layers into placed part textures.
 
-Writes parts/<ch>/<name>.png and parts/<ch>/parts.json; each entry has the part's
+Writes art/<ch>/<name>.png and art/<ch>/parts.json; each entry has the part's
 rectangle in base pixels (x, y, w, h) and its texel density."""
 import json, os, sys
 import numpy as np
@@ -12,7 +12,7 @@ base = reg.load(f"{ch}/base.png"); H, W = base.shape[:2]
 tf = json.load(open(f"{ch}/transforms.json"))
 src = layers.load_all(ch)
 for side in "lr": src[f"lashup_{side}"], src[f"lashlow_{side}"] = layers.split_lash(src[f"lash_{side}"])
-out = f"parts/{ch}"; os.makedirs(out, exist_ok=True)
+out = f"art/{ch}"; os.makedirs(out, exist_ok=True)   # not "parts/": the repository ignores that name
 # texels per base pixel: the redrawn layers hold more detail than the base, most of all on the small adult head
 FACE = {"q": 2.0, "adult": 5.0}[ch]
 HEADD = {"q": 1.0, "adult": 2.0}[ch]

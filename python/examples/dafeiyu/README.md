@@ -27,10 +27,10 @@ is how every deform here was checked.
 | 1. Draw | an image model, `prompts.json` | a character sheet | `base.png`, a front-facing illustration |
 | 2. Separate | the same model, one request per layer | `base.png` | `L_*.png` body layers, `F_*.png` eye layers |
 | 3. Register | `align.py` | the layers | `transforms.json`: each layer's place on the base |
-| 4. Cut | `parts.py` | layers and transforms | `parts/<ch>/*.png`, `parts.json` |
-| 5. Rig | `rig.py` | `parts/<ch>/` | `dafeiyu-<ch>.clm` |
+| 4. Cut | `parts.py` | layers and transforms | `art/<ch>/*.png`, `parts.json` |
+| 5. Rig | `rig.py` | `art/<ch>/` | `dafeiyu-<ch>.clm` |
 
-Steps 1 to 4 ran once; their output, `parts/`, is committed, and the raw
+Steps 1 to 4 ran once; their output, `art/`, is committed, and the raw
 layers (a few hundred megabytes) are not. `align.py` and `parts.py` are kept
 as the record of how the parts were made, and run from a directory holding
 `<ch>/base.png` and the generated layers.
